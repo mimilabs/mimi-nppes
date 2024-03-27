@@ -29,6 +29,7 @@ from pathlib import Path
 from tqdm import tqdm
 import datetime
 from dateutil.relativedelta import *
+import zipfile
 
 # COMMAND ----------
 
@@ -36,8 +37,7 @@ url = "https://download.cms.gov/nppes"
 page = "NPI_Files.html"
 volumepath_root = "/Volumes/mimi_ws_1/nppes/src"
 volumepath_zip = f"{volumepath_root}/zipfiles"
-volumepath_unzip = f"{volumepath_root}/unzipped"
-retrieval_range = 36 # in months
+volumevoluretrieval_range = 36 # in months
 
 # COMMAND ----------
 
@@ -92,28 +92,22 @@ for filename in files_to_download:
 
 # COMMAND ----------
 
-files_downloaded = [x.stem for x in Path(volumepath_zip).glob("*.zip")]
+files_downloaded = [x for x in Path(volumepath_zip).glob("*.zip")
+                    if x.stem[-7:] != "_Weekly" and x.stem[:17] != "NPPES_Deactivated"]
 
 # COMMAND ----------
 
-unzipped_already = []
-for subfolder in Path(volumepath_unzip).glob("*/"):
-    unzipped_already.append(subfolder.stem)
-unzipped_already = set(unzipped_already)
-
-# COMMAND ----------
-
-import zipfile
 for file_downloaded in files_downloaded:
-    if file_downloaded in unzipped_already:
-        continue
-    unzip_folder_str = f"{volumepath_unzip}/{file_downloaded}"
-    unzip_folder = Path(unzip_folder_str)
-    if not unzip_folder.exists():
-        unzip_folder.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(f"{volumepath_zip}/{file_downloaded}.zip", "r") as zip_ref:
-        print(f"Unzipping {file_downloaded}...")
-        zip_ref.extractall(unzip_folder_str)
+    with zipfile.ZipFile(file_downloaded, "r") as zip_ref:
+        for member in zip_ref.namelist():
+            ext = ""
+            if  member.lower()[-14:] == "fileheader.csv":
+                ext = "_header"
+            for filetype in ["npidata", "endpoint", "othername", "pl"]:
+                if (member[:(len(filetype)+1)] == f"{filetype}_" and
+                    not Path(f"{volumepath_root}/{filetype}{ext}/{member}").exists()):
+                    print(f"Extracting {member}...")
+                    zip_ref.extract(member, path=f"{volumepath_root}/{filetype}{ext}")
 
 # COMMAND ----------
 
