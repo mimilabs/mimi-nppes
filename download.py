@@ -37,7 +37,7 @@ url = "https://download.cms.gov/nppes"
 page = "NPI_Files.html"
 volumepath_root = "/Volumes/mimi_ws_1/nppes/src"
 volumepath_zip = f"{volumepath_root}/zipfiles"
-volumevoluretrieval_range = 36 # in months
+retrieval_range = 48 # in months
 
 # COMMAND ----------
 
