@@ -128,11 +128,16 @@ def compress_row(header, row, compress_index, comp_groups):
 
 # COMMAND ----------
 
-block = []
-block_cnt = 0
-for item in files[:3]:
-    #if item[0].strftime("%Y%m%d") in block_exist:
-    #    continue
+
+
+for item in tqdm(files[:12]):
+    
+    if item[0].strftime("%Y-%m-%d") in block_exist:
+        continue
+    
+    block = []
+    block_cnt = 0 # block number reets for each input file
+    
     with open(item[1], "r") as fp_in:
         reader = csv.reader(fp_in)
         header = next(reader)
@@ -140,7 +145,7 @@ for item in files[:3]:
                          for column in header]
         compress_index, header_comp, comp_groups = get_compress_index(header)
         input_file_dt = item[0].strftime("%Y-%m-%d")
-        for row in tqdm(reader):
+        for row in reader:
             row_comp = compress_row(header, row, 
                                     compress_index,
                                     comp_groups)
@@ -149,10 +154,20 @@ for item in files[:3]:
                 block_cnt += 1
                 fn_block = f"{path}/{tablename}block/{input_file_dt}_{block_cnt:03}.csv"
                 with open(fn_block, "w") as fp_out:
+                    print(f"{fn_block}...")
                     writer = csv.writer(fp_out)
                     writer.writerow(header_comp + ["_input_file_date"])
                     writer.writerows(block)
                     block = []
+        if len(block) > 0:
+            block_cnt += 1
+            fn_block = f"{path}/{tablename}block/{input_file_dt}_{block_cnt:03}.csv"
+            with open(fn_block, "w") as fp_out:
+                print(f"{fn_block}...")
+                writer = csv.writer(fp_out)
+                writer.writerow(header_comp + ["_input_file_date"])
+                writer.writerows(block)
+                block = []
 
 # COMMAND ----------
 
@@ -172,15 +187,16 @@ if spark.catalog.tableExists(f"{catalog}.{schema}.{tablename}"):
 for filepath in Path(f"{path}/{tablename}block").glob("*"):
     yyyymmdd = re.search(r"(\d{4}-\d{2}-\d{2})_(\d{3})", filepath.stem).group(1)
     dt = datetime.strptime(yyyymmdd, "%Y-%m-%d").date()
-    if dt in files_exist: # TODO
+    if dt in files_exist: 
         continue
     files_to_ingest.append((dt, filepath))
 #files_to_ingest
 
 # COMMAND ----------
 
-header = next(csv.reader(open(files_to_ingest[0][1], "r")))
-table_schema = StructType([StructField(column, 
+if len(files_to_ingest) > 0:
+    header = next(csv.reader(open(files_to_ingest[0][1], "r")))
+    table_schema = StructType([StructField(column, 
                                  StringType() if column[-5:] != "_date" else DateType(), 
                                  True) for column in header]) 
 
@@ -217,7 +233,3 @@ for item in tqdm(files_to_ingest):
         .format('delta')
         .mode(writemode)
         .saveAsTable(f"{catalog}.{schema}.{tablename}"))
-
-# COMMAND ----------
-
-
