@@ -15,9 +15,10 @@ catalog = "mimi_ws_1"
 schema = "nppes"
 table_in = "address_key"
 table_out = "address_radar"
-max_cnt = 20000 # max processing volume per run; we do this to limit the spend
+max_cnt = 25000 # max processing volume per run; we do this to limit the spend
 mdb_cnt = 100 # mdb insert many volume
-radar_live_key = dbutils.secrets.get(scope="radar", key="RADAR_LIVE_KEY")
+radar_key_name = "RADAR_LIVE_KEY2"
+radar_live_key = dbutils.secrets.get(scope="radar", key=radar_key_name)
 mdb_dataapi_key = dbutils.secrets.get(scope="mdb", key="MDB_DATAAPI_KEY")
 url = "https://api.radar.io/v1/geocode/forward"
 headers = {"authorization": radar_live_key}
@@ -121,6 +122,7 @@ for _, row in tqdm(pdf.iterrows()):
                 len(matches), 
                 datetime.now()]
         data.append(d)
+        # MongoDB is our backup
         mdb_docs.append({"address_key": address_key, "matches": matches})
         if len(mdb_docs) > mdb_cnt:
             push_to_mdb(mdb_docs)
@@ -139,7 +141,8 @@ columns = ["address_key",
 
 # COMMAND ----------
 
-writemode = "overwrite" if df_out is None else "append"
+#writemode = "overwrite" if df_out is None else "append"
+writemode = "append" # to make it safe moving forward
 
 (spark.createDataFrame(pd.DataFrame(data, columns=columns))
         .write

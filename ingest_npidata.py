@@ -128,10 +128,7 @@ def compress_row(header, row, compress_index, comp_groups):
 
 # COMMAND ----------
 
-
-
-# 3 years worth - 36 months
-for item in tqdm(files[:36]):
+for item in tqdm(files):
     
     if item[0].strftime("%Y-%m-%d") in block_exist:
         continue
