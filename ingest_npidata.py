@@ -205,6 +205,15 @@ if len(files_to_ingest) > 0:
 
 # COMMAND ----------
 
+if len(files_to_ingest) > 0:
+    df = (spark.read.format("csv")
+            .option("header", "false")
+            .option("skipRows", "1")
+            .schema(table_schema)
+            .load(str(files_to_ingest[0][1])))
+
+# COMMAND ----------
+
 writemode = "overwrite"
 for item in tqdm(files_to_ingest):
     df = (spark.read.format("csv")
@@ -227,7 +236,13 @@ for item in tqdm(files_to_ingest):
     if spark.catalog.tableExists(f"{catalog}.{schema}.{tablename}"):
         writemode = "append"
     
+    # Certification Date column is added in 2020. To ingest the older files, we set "mergeSchema = True"
     (df.write
-        .format('delta')
+        .format("delta")
         .mode(writemode)
+        .option("mergeSchema", "true")
         .saveAsTable(f"{catalog}.{schema}.{tablename}"))
+
+# COMMAND ----------
+
+

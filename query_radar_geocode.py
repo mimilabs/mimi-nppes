@@ -17,7 +17,7 @@ table_in = "address_key"
 table_out = "address_radar"
 max_cnt = 25000 # max processing volume per run; we do this to limit the spend
 mdb_cnt = 100 # mdb insert many volume
-radar_key_name = "RADAR_LIVE_KEY2"
+radar_key_name = "RADAR_LIVE_KEY4" # roate the radar keys
 radar_live_key = dbutils.secrets.get(scope="radar", key=radar_key_name)
 mdb_dataapi_key = dbutils.secrets.get(scope="mdb", key="MDB_DATAAPI_KEY")
 url = "https://api.radar.io/v1/geocode/forward"
@@ -129,6 +129,10 @@ for _, row in tqdm(pdf.iterrows()):
             mdb_docs = []
 if len(mdb_docs) > 0:
     push_to_mdb(mdb_docs)
+
+# COMMAND ----------
+
+len(data)
 
 # COMMAND ----------
 

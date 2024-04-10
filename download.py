@@ -19,7 +19,7 @@
 
 # COMMAND ----------
 
-!pip install requests beautifulsoup4 tqdm python-dateutil
+!pip install beautifulsoup4 tqdm
 
 # COMMAND ----------
 
@@ -37,7 +37,7 @@ url = "https://download.cms.gov/nppes"
 page = "NPI_Files.html"
 volumepath_root = "/Volumes/mimi_ws_1/nppes/src"
 volumepath_zip = f"{volumepath_root}/zipfiles"
-retrieval_range = 48 # in months
+retrieval_range = 76 # in months, we wanted to get the data starting 2018-01-01
 
 # COMMAND ----------
 
@@ -98,6 +98,10 @@ files_downloaded = [x for x in Path(volumepath_zip).glob("*.zip")
 # COMMAND ----------
 
 for file_downloaded in files_downloaded:
+    if file_downloaded.stem == "NPPES_Data_Dissemination_April_2018":
+        # This batch of file is compressed with lzma; not supported
+        # We used a separate system to unzip and uploaded to S3
+        continue
     with zipfile.ZipFile(file_downloaded, "r") as zip_ref:
         for member in zip_ref.namelist():
             ext = ""
@@ -107,7 +111,32 @@ for file_downloaded in files_downloaded:
                 if (member[:(len(filetype)+1)] == f"{filetype}_" and
                     not Path(f"{volumepath_root}/{filetype}{ext}/{member}").exists()):
                     print(f"Extracting {member}...")
-                    zip_ref.extract(member, path=f"{volumepath_root}/{filetype}{ext}")
+                    try: 
+                        zip_ref.extract(member, path=f"{volumepath_root}/{filetype}{ext}")
+                    except NotImplementedError:
+                        print(f"skipping {file_downloaded} due to an error...")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Unzip the Deactivation List
+
+# COMMAND ----------
+
+files_downloaded = [x for x in Path(volumepath_zip).glob("*.zip")
+                    if x.stem[:17] == "NPPES_Deactivated"]
+
+# COMMAND ----------
+
+for file_downloaded in files_downloaded:
+    with zipfile.ZipFile(file_downloaded, "r") as zip_ref:
+        for member in zip_ref.namelist():
+            if not Path(f"{volumepath_root}/deactivated/{member}").exists():
+                print(f"Extracting {member}...")
+                try: 
+                    zip_ref.extract(member, path=f"{volumepath_root}/deactivated")
+                except NotImplementedError:
+                    print(f"skipping {file_downloaded} due to an error...")
 
 # COMMAND ----------
 

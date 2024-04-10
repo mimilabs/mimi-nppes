@@ -59,7 +59,12 @@ table_schema = StructType([StructField(re.sub(r'\W+', '', column.lower().replace
 files_exist = {}
 # We want to skip those files that are already in the delta tables.
 # We look up the table, and see if the files are already there or not.
+
+#writemode = "overwrite"
+writemode = "append" # just to be safe...
+
 if spark.catalog.tableExists(f"{catalog}.{schema}.{tablename}"):
+    writemode = "append"
     files_exist = set([row["_input_file_date"] 
                    for row in 
                    (spark.read.table(f"{catalog}.{schema}.{tablename}")
@@ -76,17 +81,13 @@ files_to_ingest = [item for item in files if item[0] not in files_exist]
 
 # COMMAND ----------
 
-writemode = "overwrite"
-for item in tqdm(sorted(files_to_ingest, key=lambda x: x, reverse=True)):
+for item in tqdm(sorted(files_to_ingest, key=lambda x: x[0], reverse=True)):
     df = (spark.read.format("csv")
             .option("header", "false")
             .option("skipRows", "1")
             .schema(table_schema)
             .load(str(item[1]))
             .withColumn('_input_file_date', lit(item[0])))
-    
-    if spark.catalog.tableExists(f"{catalog}.{schema}.{tablename}"):
-        writemode = "append"
     
     (df.write
         .format('delta')
@@ -97,6 +98,10 @@ for item in tqdm(sorted(files_to_ingest, key=lambda x: x, reverse=True)):
 
 # MAGIC %md
 # MAGIC
+
+# COMMAND ----------
+
+files_to_ingest
 
 # COMMAND ----------
 
