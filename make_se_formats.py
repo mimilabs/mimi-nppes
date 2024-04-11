@@ -134,6 +134,7 @@ df = (spark.read.table('mimi_ws_1.nppes.npidata')
         .withColumn("other_id_type_desc", split(col("other_id_token"), "\^").getItem(4))
         .withColumn("other_id_dt_s", to_date(split(col("other_id_token"), "\^").getItem(5)))
         .withColumn("other_id_dt_e", to_date(split(col("other_id_token"), "\^").getItem(6)))
+        .filter(col("other_id") != "")
         )
 
 # COMMAND ----------
@@ -167,6 +168,7 @@ df = (spark.read.table('mimi_ws_1.nppes.npidata')
         .withColumn("taxonomy_desc", split(col("taxonomy_token"), "\^").getItem(2))
         .withColumn("taxonomy_dt_s", to_date(split(col("taxonomy_token"), "\^").getItem(3)))
         .withColumn("taxonomy_dt_e", to_date(split(col("taxonomy_token"), "\^").getItem(4)))
+        .filter(col("taxonomy_code") != "")
         )
 
 # COMMAND ----------
@@ -199,6 +201,7 @@ df = (spark.read.table('mimi_ws_1.nppes.npidata')
         .withColumn("license_state", split(col("license_token"), "\^").getItem(1))
         .withColumn("license_dt_s", to_date(split(col("license_token"), "\^").getItem(2)))
         .withColumn("license_dt_e", to_date(split(col("license_token"), "\^").getItem(3)))
+        .filter(col("license_number") != "")
         )
 
 # COMMAND ----------
@@ -240,6 +243,7 @@ df = (spark.read.table('mimi_ws_1.nppes.othername')
         .withColumn("othername_type_desc", split(col("othername_token"), "\^").getItem(2))
         .withColumn("othername_dt_s", to_date(split(col("othername_token"), "\^").getItem(3)))
         .withColumn("othername_dt_e", to_date(split(col("othername_token"), "\^").getItem(4)))
+        .filter(col("othername") != "")
         )
 
 # COMMAND ----------
@@ -247,6 +251,48 @@ df = (spark.read.table('mimi_ws_1.nppes.othername')
 (df.write
     .format("delta")
     .mode("overwrite")
+    .saveAsTable(f"{catalog}.{schema}.{table}"))
+
+# COMMAND ----------
+
+table = "othername_se" #se: start-end format
+# individual other names are stored in the original npidata table
+df = (spark.read.table('mimi_ws_1.nppes.npidata')
+        .select("npi", 
+                "provider_other_last_name",
+                "provider_other_first_name", 
+                "provider_other_middle_name",
+                "provider_other_last_name_type_code",
+                "_input_file_date")
+        .withColumn("othername_key", 
+                        concat_ws("^", 
+                            concat_ws(" ", 
+                                      col("provider_other_first_name"),
+                                      col("provider_other_middle_name"),
+                                      col("provider_other_last_name")), 
+                            coalesce(col("provider_other_last_name_type_code"), lit(""))))
+        .groupBy("npi")
+        .agg(collect_list(col("othername_key")).alias("othername_keys"),
+            collect_list(col("_input_file_date")).alias("dates"))
+        .withColumn("othername_token", 
+                    explode(get_se_lst_udf(col("npi"), 
+                                           col("othername_keys"), 
+                                           col("dates"),
+                                           lit("othername"))))
+        .select("npi", "othername_token")
+        .withColumn("othername", split(col("othername_token"), "\^").getItem(0))
+        .withColumn("othername_type_code", split(col("othername_token"), "\^").getItem(1))
+        .withColumn("othername_type_desc", split(col("othername_token"), "\^").getItem(2))
+        .withColumn("othername_dt_s", to_date(split(col("othername_token"), "\^").getItem(3)))
+        .withColumn("othername_dt_e", to_date(split(col("othername_token"), "\^").getItem(4)))
+        .filter(col("othername") != "")
+        )
+
+# COMMAND ----------
+
+(df.write
+    .format("delta")
+    .mode("append")
     .saveAsTable(f"{catalog}.{schema}.{table}"))
 
 # COMMAND ----------
@@ -276,6 +322,7 @@ df = (spark.read.table('mimi_ws_1.nppes.endpoint')
         .withColumn("endpoint_desc", split(col("endpoint_token"), "\^").getItem(2))
         .withColumn("endpoint_dt_s", to_date(split(col("endpoint_token"), "\^").getItem(3)))
         .withColumn("endpoint_dt_e", to_date(split(col("endpoint_token"), "\^").getItem(4)))
+        .filter(col("endpoint") != "")
         )
 
 # COMMAND ----------
