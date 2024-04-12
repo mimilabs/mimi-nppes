@@ -30,7 +30,7 @@ def push_to_mdb(documents):
     payload = json.dumps({
         "collection": "address_radar",
         "database": "nppes",
-        "dataSource": "mimi2",
+        "dataSource": "mimi-nppes",
         "documents": documents
     })
     headers = {
@@ -46,7 +46,7 @@ def reset_mdb():
     payload = json.dumps({
         "collection": "address_radar",
         "database": "nppes",
-        "dataSource": "mimi2",
+        "dataSource": "mimi-nppes",
         "filter": {}
     })
     headers = {

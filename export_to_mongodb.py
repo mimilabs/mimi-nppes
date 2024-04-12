@@ -1,4 +1,9 @@
 # Databricks notebook source
+# MAGIC %md
+# MAGIC
+
+# COMMAND ----------
+
 from pyspark.sql.functions import (col, lit, max as _max, 
                                    collect_list, collect_set, 
                                    concat_ws, first)
@@ -9,7 +14,12 @@ table = "mongodb_export"
 database = "nppes" #mongodb
 collection = "npidata" #mongodb
 mdb_password = dbutils.secrets.get(scope="mdb", key="MDB_PASSWORD")
-uri = f"mongodb+srv://databricks:{mdb_password}@mimi2.urvlr.mongodb.net/"
+uri = f"mongodb+srv://databricks:{mdb_password}@mimi2.urvlr.mongodb.net/{database}"
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Summarize/Join tables
 
 # COMMAND ----------
 
@@ -44,9 +54,6 @@ df_npidata = (spark.read.table("mimi_ws_1.nppes.npidata")
 
 # COMMAND ----------
 
-#ppef_max_ifd = (spark.read.table("mimi_ws_1.datacmsgov.ppef")
-#                .select(_max(col("_input_file_date")).alias("max_ifd"))
-#                .collect()[0]["max_ifd"])
 reval_max_ifd = (spark.read.table("mimi_ws_1.datacmsgov.reval")
                 .select(_max(col("_input_file_date")).alias("max_ifd"))
                 .collect()[0]["max_ifd"])
@@ -120,15 +127,20 @@ df = (df_base.join(df_npidata, on=["npi", "_input_file_date"], how="left")
 # MAGIC ## Export to Mongo
 # MAGIC
 # MAGIC Use at least the HighPerf1 cluster, or others with the spark-mongodb connector installed
+# MAGIC
+# MAGIC https://docs.databricks.com/en/connect/external-systems/mongodb.html
+# MAGIC
+# MAGIC Need to use the exact JAR version. For this project, we downloaded the JAR in one of our Volume storages. 
 
 # COMMAND ----------
 
 df = spark.read.table(f"{catalog}.{schema}.{table}")
+# sometimes, "mongodb" can be replaced with "com.mongodb.spark.sql.DefaultSource"
 (df.write.format("com.mongodb.spark.sql.DefaultSource")
-                .mode("overwrite")
-                .option("database", database)
                 .option("spark.mongodb.output.uri", uri)
+                .option("database", database)
                 .option("collection", collection)
+                .mode("overwrite")
                 .save())
 
 # COMMAND ----------
