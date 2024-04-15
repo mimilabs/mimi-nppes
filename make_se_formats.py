@@ -306,8 +306,7 @@ table = "endpoint_se" #se: start-end format
 df = (spark.read.table('mimi_ws_1.nppes.endpoint')
         .withColumn("endpoint_key", concat_ws("^", 
                                             coalesce(col("endpoint_type"), lit("")), 
-                                            coalesce(col("endpoint"), lit("")),
-                                            coalesce(col("endpoint_description"), lit(""))))
+                                            coalesce(col("endpoint"), lit(""))))
         .groupBy("npi")
         .agg(collect_list(col("endpoint_key")).alias("endpoint_keys"),
             collect_list(col("_input_file_date")).alias("dates"))
@@ -319,9 +318,8 @@ df = (spark.read.table('mimi_ws_1.nppes.endpoint')
         .select("npi", "endpoint_token")
         .withColumn("endpoint_type", split(col("endpoint_token"), "\^").getItem(0))
         .withColumn("endpoint", split(col("endpoint_token"), "\^").getItem(1))
-        .withColumn("endpoint_desc", split(col("endpoint_token"), "\^").getItem(2))
-        .withColumn("endpoint_dt_s", to_date(split(col("endpoint_token"), "\^").getItem(3)))
-        .withColumn("endpoint_dt_e", to_date(split(col("endpoint_token"), "\^").getItem(4)))
+        .withColumn("endpoint_dt_s", to_date(split(col("endpoint_token"), "\^").getItem(2)))
+        .withColumn("endpoint_dt_e", to_date(split(col("endpoint_token"), "\^").getItem(3)))
         .filter(col("endpoint") != "")
         )
 
