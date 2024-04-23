@@ -1,6 +1,12 @@
 # Databricks notebook source
 # look at `npidata` and `pl`
-from pyspark.sql.functions import col, countDistinct, lit, concat, coalesce, substring
+from pyspark.sql.functions import (col, 
+                                   countDistinct, 
+                                   lit, 
+                                   concat_ws, 
+                                   coalesce, 
+                                   substring, 
+                                   regexp_replace)
 
 # COMMAND ----------
 
@@ -12,6 +18,11 @@ table_out = "address_key"
 
 # COMMAND ----------
 
+def clean(x):
+    return coalesce(regexp_replace(x, "|", ""), lit(""))
+
+# COMMAND ----------
+
 df_b1 = (spark.read.table(f"{catalog}.{schema}.{table_in1}")
         .select("npi",
             col("provider_first_line_business_practice_location_address").alias("line1"),
@@ -20,12 +31,13 @@ df_b1 = (spark.read.table(f"{catalog}.{schema}.{table_in1}")
             col("provider_business_practice_location_address_state_name").alias("state"),
             col("provider_business_practice_location_address_postal_code").alias("zipcode"),
             col("provider_business_practice_location_address_country_code_if_outside_us").alias("country"))
-        .withColumn("address_key", concat(coalesce(col("line1"), lit("")), lit("|"),
-                                            coalesce(col("line2"), lit("")), lit("|"),
-                                            coalesce(col("city"), lit("")), lit("|"), 
-                                            coalesce(col("state"), lit("")), lit("|"),
-                                            substring(coalesce(col("zipcode"), lit("")), 0, 5), lit("|"),
-                                            coalesce(col("country"), lit(""))))
+        .withColumn("address_key", concat_ws("|", 
+                                            clean(col("line1")), 
+                                            clean(col("line2")), 
+                                            clean(col("city")),  
+                                            clean(col("state")), 
+                                            substring(clean(col("zipcode")), 0, 5), 
+                                            clean(col("country"))))
         .groupBy("address_key")
         .agg(countDistinct(col("npi")).alias("npi_b1_cnt"))
         .select("address_key", "npi_b1_cnt")
@@ -41,12 +53,13 @@ df_m1 = (spark.read.table(f"{catalog}.{schema}.{table_in1}")
             col("provider_business_mailing_address_state_name").alias("state"),
             col("provider_business_mailing_address_postal_code").alias("zipcode"),
             col("provider_business_mailing_address_country_code_if_outside_us").alias("country"))
-        .withColumn("address_key", concat(coalesce(col("line1"), lit("")), lit("|"),
-                                            coalesce(col("line2"), lit("")), lit("|"),
-                                            coalesce(col("city"), lit("")), lit("|"), 
-                                            coalesce(col("state"), lit("")), lit("|"),
-                                            substring(coalesce(col("zipcode"), lit("")), 0, 5), lit("|"),
-                                            coalesce(col("country"), lit(""))))
+        .withColumn("address_key", concat_ws("|", 
+                                            clean(col("line1")), 
+                                            clean(col("line2")), 
+                                            clean(col("city")),  
+                                            clean(col("state")), 
+                                            substring(clean(col("zipcode")), 0, 5), 
+                                            clean(col("country"))))
         .groupBy("address_key")
         .agg(countDistinct(col("npi")).alias("npi_m1_cnt"))
         .select("address_key", "npi_m1_cnt")
@@ -63,12 +76,13 @@ df_b2 = (spark.read.table(f"{catalog}.{schema}.{table_in2}")
             col("provider_secondary_practice_location_address__state_name").alias("state"),
             col("provider_secondary_practice_location_address__postal_code").alias("zipcode"),
             col("provider_secondary_practice_location_address__country_code_if_outside_us").alias("country"))
-        .withColumn("address_key", concat(coalesce(col("line1"), lit("")), lit("|"),
-                                            coalesce(col("line2"), lit("")), lit("|"),
-                                            coalesce(col("city"), lit("")), lit("|"), 
-                                            coalesce(col("state"), lit("")), lit("|"),
-                                            substring(coalesce(col("zipcode"), lit("")), 0, 5), lit("|"),
-                                            coalesce(col("country"), lit(""))))
+        .withColumn("address_key", concat_ws("|", 
+                                            clean(col("line1")), 
+                                            clean(col("line2")), 
+                                            clean(col("city")),  
+                                            clean(col("state")), 
+                                            substring(clean(col("zipcode")), 0, 5), 
+                                            clean(col("country"))))
         .groupBy("address_key")
         .agg(countDistinct(col("npi")).alias("npi_b2_cnt"))
         .select("address_key", "npi_b2_cnt")

@@ -1,15 +1,10 @@
 # Databricks notebook source
-!pip install tqdm
-
-# COMMAND ----------
-
 import requests
 from pyspark.sql.functions import col, desc
 from datetime import datetime
 from pyspark.sql.types import StructType, StructField, StringType, TimestampType
 import pandas as pd
 import json
-from tqdm import tqdm
 import csv
 
 catalog = "mimi_ws_1"
@@ -65,6 +60,8 @@ while pdf.shape[0] > 0:
     for i, (_, row) in enumerate(pdf.iterrows()):
         address_key = row["address_key"]
         keymap[str(i)] = address_key
+        if len(address_key.split("|")) != 6:
+            continue
         line1, line2, city, state, zipcode, country = address_key.split("|")
         line = clean_street_address(f"{line1} {line2}".strip())
         data.append(",".join([str(i), line, city, state, zipcode[:5]]))
