@@ -1,9 +1,4 @@
 # Databricks notebook source
-# MAGIC %md
-# MAGIC
-
-# COMMAND ----------
-
 from pyspark.sql.functions import (col, lit, max as _max, size, slice,
                                    collect_list, collect_set, 
                                    concat_ws, concat, first, any_value)
@@ -68,7 +63,7 @@ df_optout = (spark.read.table("mimi_ws_1.datacmsgov.optout")
              .groupBy("npi")
              .agg(_max(col("optout_effective_date")).alias("optout_effective_date"),
                   _max(col("optout_end_date")).alias("optout_end_date")))
-df_ppef = (spark.read.table("mimi_ws_1.datacmsgov.ppef")
+df_ppef = (spark.read.table("mimi_ws_1.datacmsgov.pc_provider")
                .select(col("npi").alias("group_npi"), 
                        col("pecos_asct_cntl_id").alias("group_pac_id"))
                .dropDuplicates(["group_pac_id"]))
@@ -145,6 +140,15 @@ df_ep = (spark.read.table("mimi_ws_1.nppes.endpoint_se")
 df_oi = (spark.read.table("mimi_ws_1.nppes.otherid_se")
             .groupBy("npi")
             .agg(collect_list("other_id_token").alias("otherids")))
+df_oi_ccn = (spark.read.table("mimi_ws_1.nppes.otherid_ccn_se")
+            .groupBy("npi")
+            .agg(collect_list("other_id_token").alias("otherids")))
+
+# COMMAND ----------
+
+df_h3 = (spark.read.table("mimi_ws_1.nppes.address_h3")
+            .select("npi", "npi_lst_b", "npi_lst_m"))
+df_openpayments = spark.read.table("mimi_ws_1.nppes.openpayments")
 
 # COMMAND ----------
 
@@ -158,8 +162,11 @@ df = (df_base.join(df_npidata, on=["npi", "_input_file_date"], how="left")
         .join(df_lc, on=["npi"], how="left")
         .join(df_ep, on=["npi"], how="left")
         .join(df_oi, on=["npi"], how="left")
+        .join(df_oi_ccn, on=["npi"], how="left")
         .join(df_ndf, on=["npi"], how="left")
         .join(df_aka, on=["npi"], how="left")
+        .join(df_h3, on=["npi"], how="left")
+        .join(df_openpayments, on=["npi"], how="left")
         )
 
 # COMMAND ----------

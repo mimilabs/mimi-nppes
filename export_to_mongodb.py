@@ -55,24 +55,51 @@ conn.create_index([("npi", pymongo.ASCENDING)])
 
 # COMMAND ----------
 
+"""
 conn.create_search_index({
     "definition": {
         "mappings": {
             "dynamic": True,
             "fields": {
-            "address_search": {
-                "type": "string"
-            },
-            "name_search": {
-                "type": "string"
-            },
-            "npi": {
-                "type": "string"
-            }
+                "address_search": {
+                    "type": "string"
+                },
+                "name_search": {
+                    "type": "string"
+                },
+                "npi": {
+                    "type": "string"
+                }
             }
         }
     },
     "name": "npi_name_address"
+})
+"""
+
+# COMMAND ----------
+
+conn.create_search_index({
+    "definition": {
+        "mappings": {
+            "dynamic": True,
+            "fields": {
+                "address_search": {
+                    "type": "string"
+                },
+                "name_search": {
+                    "type": "string"
+                },
+                "npi": {
+                    "type": "string"
+                }, 
+                "reval_specialty": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "name": "npi_name_address_specialty"
 })
 
 # COMMAND ----------
